@@ -46,7 +46,7 @@ else:
 
 return analysis_result
 
-    except Exception as e:
+   except Exception as e:
 return {"status": "error", "message": f"حدث خطأ في المعالجة الفنية: {str(e)}"}
 
 
