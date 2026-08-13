@@ -37,7 +37,7 @@ async def analyze_audio(
         "message": f"تنبيه في تلاوة سورة {surah} برواية {riwaya}: تم رصد ملاحظة في احكام التلاوة.",
         "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
       }
-     else:
+    else:
       analysis_result = {
         "status": "success",
         "message": f"تلاوة سورة ما شاء الله {surah} برواية {riwaya} دقيقة ومطابقة للأحكام بنجاح.",
