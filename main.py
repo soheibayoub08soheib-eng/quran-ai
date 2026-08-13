@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, From
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import librosa
