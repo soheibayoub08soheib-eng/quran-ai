@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import numpy as np
 import librosa
@@ -34,13 +34,13 @@ has_error = bool(spectral_centroid > 3500 or duration < 1.0)
 if has_error:
 analysis_result = {
 "status": "error",
-"message": f"تم اكتشاف ملاحظة أو خطأ في أحكام تلاوة سورة {surah} ({riwaya}). راجع مخرج الحرف أو المد.",
+"message": "Error detected in Quran recitation rules or articulation points.",
 "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
 }
 else:
 analysis_result = {
 "status": "success",
-"message": f"التلاوة مطابقة ومتقنة لأحكام سورة {surah} برواية {riwaya}.",
+"message": "The recitation is accurate and matches the rules successfully.",
 "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
 }
 
@@ -48,3 +48,4 @@ return analysis_result
 
 except Exception as e:
 return {"status": "error", "message": f"حدث خطأ في المعالجة الفنية: {str(e)}"}
+﻿
