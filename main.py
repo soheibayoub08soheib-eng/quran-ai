@@ -1,10 +1,10 @@
-from fastapi import FastAPI, UploadFile, File, From
-from fastapi.middleware.cors import CORSMiddleware
+from FastAPI import fastapi, UploadFile, File, From
+from FastAPI.middleware.cors import CORSMiddleware
 import numpy as np
 import librosa
 import io
 
-app = fastapi()
+app = FastAPI()
 
 app.add_middleware(
   CORSMiddleware,
