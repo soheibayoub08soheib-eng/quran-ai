@@ -4,7 +4,7 @@ import numpy as np
 import librosa
 import io
 
-app = FastAPI()
+app = fastapi()
 
 app.add_middleware(
   CORSMiddleware,
