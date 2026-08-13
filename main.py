@@ -34,7 +34,7 @@ async def analyze_audio(
     if has_error:
       analysis_result = {
         "status": "error",
-        "message": f"تنبيه في تلاوة سورة {surah} برواية {riwaya} تم رصد ملاحظة في احكام التلاوة.",
+        "message": f"تنبيه في تلاوة سورة {surah} برواية {riwaya}: تم رصد ملاحظة في احكام التلاوة.",
         "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
       }
 else:
