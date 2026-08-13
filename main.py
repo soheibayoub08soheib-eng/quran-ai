@@ -20,7 +20,7 @@ async def analyze_audio(
   surah: str = Form(...),
   riwaya: str = Form(...)
 ):
-  try:
+   try:
     contents = await audio.read()
     audio_file = io.BytesIO(contents)
     y, sr = librosa.load(audio_file, sr=None)
