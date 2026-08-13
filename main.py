@@ -37,17 +37,17 @@ async def analyze_audio(
         "message": f"تنبيه في تلاوة سورة {surah} برواية {riwaya}: تم رصد ملاحظة في احكام التلاوة.",
         "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
       }
-else:
+     else:
       analysis_result = {
         "status": "success",
         "message": f"تلاوة سورة ما شاء الله {surah} برواية {riwaya} دقيقة ومطابقة للأحكام بنجاح.",
         "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
       }
 
-return analysis_result
+    return analysis_result
 
    except Exception as e:
-return {"status": "error", "message": f"حدث خطأ في المعالجة الفنية: {str(e)}"}
+    return {"status": "error", "message": f"حدث خطأ في المعالجة الفنية: {str(e)}"}
 
 
 
