@@ -12,7 +12,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
-try:
+ try:
 # استلام البيانات المرفوعة من واجهة الموقع
 surah = request.form.get('surah', 'غير محدد')
 verse_from = request.form.get('verse_from', '1')
@@ -21,8 +21,8 @@ riwaya = request.form.get('riwaya', 'حفص عن عاصم')
 
 audio_file = request.files.get('audio')
 
-if not audio_file:
-return jsonify({
+  if not audio_file:
+   return jsonify({
 "status": "error",
 "message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
 }), 400
@@ -37,7 +37,7 @@ gemini_audio_ref = genai.upload_file(audio_path)
 
 # إعداد نموذج الذكاء الاصطناعي مع التوجيهات الصارمة للتدقيق القرآني
 generation_config = {
-"temperature": 0.1, # درجة حرارة منخفضة لضمان دقة صارمة ومنطقية
+"temperature": 0.1,
 "top_p": 0.95,
 "top_k": 40,
 "max_output_tokens": 1024,
@@ -62,31 +62,28 @@ prompt = f"""
 - "message": تقرير مفصل بالعربية يوضح النتيجة، وفي حال وجود أخطاء قم بتوضيحها بدقة ومحبة لتوجيه الطالب.
 """
 
-# إرسال الملف والصوت للنموذج للحصول على النتيجة
 response = model.generate_content([gemini_audio_ref, prompt])
 
-# تنظيف الملف المؤقت من النظام
-if os.path.exists(audio_path):
+  if os.path.exists(audio_path):
 os.remove(audio_path)
 
-# محاولة قراءة واستخراج الرد وتحويله لـ JSON
 import json
 clean_text = response.text.replace("```json", "").replace("```", "").strip()
 result_json = json.loads(clean_text)
 
-return jsonify(result_json)
+   return jsonify(result_json)
 
-except Exception as e:
-# تنظيف الملف في حال حدوث خطأ طارئ
-if 'audio_path' in locals() and os.path.exists(audio_path):
+ except Exception as e:
+  if 'audio_path' in locals() and os.path.exists(audio_path):
 os.remove(audio_path)
 
-return jsonify({
+   return jsonify({
 "status": "error",
 "message": f"حدث خطأ أثناء معالجة التلاوة بالذكاء الاصطناعي: {str(e)}"
 }), 500
 
-if __name__ == '__main__':
+  if __name__ == '__main__':
 port = int(os.environ.get('PORT', 5000))
 app.run(host='0.0.0.0', port=port)
+
 
