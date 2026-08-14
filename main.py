@@ -8,9 +8,12 @@ CORS(app)
 
 # تهيئة Gemini باستخدام المفتاح الذي أنشأته
 import os
-import google.generativeai as genai
+import requests
 
-genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
+api_key = os.environ.get("GOOGLE_API_KEY") # هنا سيقرأ المفتاح الذي تبدأ بـ AQ بشكل طبيعي جداً
+
+# الاتصال المباشر بنموذج جيميناي
+url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
