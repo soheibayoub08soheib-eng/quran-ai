@@ -28,9 +28,9 @@ audio_file = request.files.get('audio')
 }), 400
  except Exception as e:
    return jsonify({
-   "status": "error",
-   "message": str(e)
-   }), 500  
+"status": "error",
+"message": str(e)
+}), 500  
 
 # حفظ الملف الصوتي مؤقتاً لمعالجته
 audio_path = "temp_audio_file.mp3"
