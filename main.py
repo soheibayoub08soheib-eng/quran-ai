@@ -13,7 +13,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
  try:
-# استلام البيانات المرفوعة من واجهة الموقع
+ # استلام البيانات المرفوعة من واجهة الموقع
 surah = request.form.get('surah', 'غير محدد')
 verse_from = request.form.get('verse_from', '1')
 verse_to = request.form.get('verse_to', '1')
