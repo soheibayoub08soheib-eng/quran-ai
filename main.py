@@ -19,33 +19,28 @@ def analyze_audio():
   verse_to = request.form.get('verse_to', '1')
   riwaya = request.form.get('riwaya', 'حفص عن عاصم')
 
-audio_file = request.files.get('audio')
+  audio_file = request.files.get('audio')
 
   if not audio_file:
    return jsonify({
-"status": "error",
-"message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
-}), 400
- except Exception as e:
-   return jsonify({
-"status": "error",
-"message": str(e)
-}), 500  
+    "status": "error",
+    "message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
+    }), 400  
 
-# حفظ الملف الصوتي مؤقتاً لمعالجته
-audio_path = "temp_audio_file.mp3"
-audio_file.save(audio_path)
+    # حفظ الملف الصوتي مؤقتاً لمعالجته
+    audio_path = "temp_audio_file.mp3"
+    audio_file.save(audio_path)
 
-# رفع الملف الصوتي إلى خوادم Google المعالجة للوسائط
-print("جاري رفع وتحليل الملف الصوتي بواسطة الذكاء الاصطناعي...")
-gemini_audio_ref = genai.upload_file(audio_path)
-
-# إعداد نموذج الذكاء الاصطناعي مع التوجيهات الصارمة للتدقيق القرآني
-generation_config = {
-"temperature": 0.1,
-"top_p": 0.95,
-"top_k": 40,
-"max_output_tokens": 1024,
+    # رفع الملف الصوتي إلى خوادم Google المعالجة للوسائط
+    print("جاري رفع وتحليل الملف الصوتي بواسطة الذكاء الاصطناعي...")
+    gemini_audio_ref = genai.upload_file(audio_path)
+ 
+    # إعداد نموذج الذكاء الاصطناعي مع التوجيهات الصارمة للتدقيق القرآني
+    generation_config = {
+    "temperature": 0.1,
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 1024,
 }
 
 model = genai.GenerativeModel(
