@@ -10,7 +10,7 @@ CORS(app)
 import os
 import google.generativeai as genai
 
-genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
+genai.configure(api_key=os.environ.get("GOOGLE_API_KEY"))
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
