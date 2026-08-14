@@ -7,8 +7,10 @@ app = Flask(__name__)
 CORS(app)
 
 # تهيئة Gemini باستخدام المفتاح الذي أنشأته
-GEMINI_API_KEY = "AQ.Ab8RN61vMY5LkiiA9L6fGwBN6I1A90sr04JXRkDOjk3kem8dg"
-genai.configure(api_key=GEMINI_API_KEY)
+import os
+import google.generativeai as genai
+
+genai.configure(api_key=os.environ.get("GEMINI_API_KEY"))
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
