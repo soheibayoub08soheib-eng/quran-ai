@@ -1,53 +1,92 @@
-from fastapi import FastAPI, UploadFile, File, Form
-from fastapi.middleware.cors import CORSMiddleware
-import numpy as np
-import librosa
-import io
+import os
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import google.generativeai as genai
 
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)
 
-app.add_middleware(
-  CORSMiddleware,
-  allow_origins=["*"],
-  allow_credentials=True,
-  allow_methods=["*"],
-  allow_headers=["*"],
+# تهيئة Gemini باستخدام المفتاح الذي أنشأته
+GEMINI_API_KEY = "AQ.Ab8RN6lvMY5LkiiA9L6fGwBN6I1A9Osr04JXRkDOjk3kem8dg"
+genai.configure(api_key=GEMINI_API_KEY)
+
+@app.route('/analyze-audio', methods=['POST'])
+def analyze_audio():
+try:
+# استلام البيانات المرفوعة من واجهة الموقع
+surah = request.form.get('surah', 'غير محدد')
+verse_from = request.form.get('verse_from', '1')
+verse_to = request.form.get('verse_to', '1')
+riwaya = request.form.get('riwaya', 'حفص عن عاصم')
+
+audio_file = request.files.get('audio')
+
+if not audio_file:
+return jsonify({
+"status": "error",
+"message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
+}), 400
+
+# حفظ الملف الصوتي مؤقتاً لمعالجته
+audio_path = "temp_audio_file.mp3"
+audio_file.save(audio_path)
+
+# رفع الملف الصوتي إلى خوادم Google المعالجة للوسائط
+print("جاري رفع وتحليل الملف الصوتي بواسطة الذكاء الاصطناعي...")
+gemini_audio_ref = genai.upload_file(audio_path)
+
+# إعداد نموذج الذكاء الاصطناعي مع التوجيهات الصارمة للتدقيق القرآني
+generation_config = {
+"temperature": 0.1, # درجة حرارة منخفضة لضمان دقة صارمة ومنطقية
+"top_p": 0.95,
+"top_k": 40,
+"max_output_tokens": 1024,
+}
+
+model = genai.GenerativeModel(
+model_name="gemini-1.5-flash",
+generation_config=generation_config
 )
 
-@app.post("/analyze-audio")
-async def analyze_audio(
-  audio: UploadFile = File(...),
-  surah: str = Form(...),
-  riwaya: str = Form(...)
-):
-   try:
-    contents = await audio.read()
-    audio_file = io.BytesIO(contents)
-    y, sr = librosa.load(audio_file, sr=None)
-    
-    mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=13)
-    spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))
-    duration = librosa.get_duration(y=y, sr=sr)
-    
-    has_error = bool(spectral_centroid > 3500 or duration < 1.0)
-    
-    if has_error:
-      analysis_result = {
-        "status": "error",
-        "message": f"تنبيه في تلاوة سورة {surah} برواية {riwaya}: تم رصد ملاحظة في احكام التلاوة.",
-        "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
-      }
-    else:
-      analysis_result = {
-        "status": "success",
-        "message": f"تلاوة سورة ما شاء الله {surah} برواية {riwaya} دقيقة ومطابقة للأحكام بنجاح.",
-        "details": {"spectral_centroid": float(spectral_centroid), "duration": float(duration)}
-      }
+prompt = f"""
+أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية ({riwaya}).
+مهمتك هي الاستماع بعناية فائقة للملف الصوتي المرفق ومقارنته بالآيات المطلوبة:
+- السورة: {surah}
+- من الآية: {verse_from} إلى الآية: {verse_to}
 
-    return analysis_result
+تعليمات صارمة جداً للتقييم:
+1. تحقق بدقة تامة هل الصوت المرفق يوافق الآيات المذكورة تماماً أم لا. إذا كان الملف الصوتي عبارة عن صوت عشوائي، موسيقى، كلام عادي، أو سورة أخرى غير المحددة، اعتبره فوراً (خطأ/فشل) ولا تقبله أبداً.
+2. دقق في الحفظ، صحة الكلمات، ومخارج الحروف، وأحكام التجويد الأساسية بناءً على الرواية المحددة ({riwaya}).
+3. أجب حصرياً بصيغة JSON نظيفة تحتوي على مفتاحين فقط:
+- "status": إما "success" (إذا كانت التلاوة صحيحة ومتقنة للآيات المطلوبة) أو "error" (إذا وُجدت أخطاء أو كان الصوت غير مطابق).
+- "message": تقرير مفصل بالعربية يوضح النتيجة، وفي حال وجود أخطاء قم بتوضيحها بدقة ومحبة لتوجيه الطالب.
+"""
 
-   except Exception as e:
-    return {"status": "error", "message": f"حدث خطأ في المعالجة الفنية: {str(e)}"}
+# إرسال الملف والصوت للنموذج للحصول على النتيجة
+response = model.generate_content([gemini_audio_ref, prompt])
 
+# تنظيف الملف المؤقت من النظام
+if os.path.exists(audio_path):
+os.remove(audio_path)
 
+# محاولة قراءة واستخراج الرد وتحويله لـ JSON
+import json
+clean_text = response.text.replace("```json", "").replace("```", "").strip()
+result_json = json.loads(clean_text)
+
+return jsonify(result_json)
+
+except Exception as e:
+# تنظيف الملف في حال حدوث خطأ طارئ
+if 'audio_path' in locals() and os.path.exists(audio_path):
+os.remove(audio_path)
+
+return jsonify({
+"status": "error",
+"message": f"حدث خطأ أثناء معالجة التلاوة بالذكاء الاصطناعي: {str(e)}"
+}), 500
+
+if __name__ == '__main__':
+port = int(os.environ.get('PORT', 5000))
+app.run(host='0.0.0.0', port=port)
 
