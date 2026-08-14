@@ -14,10 +14,10 @@ genai.configure(api_key=GEMINI_API_KEY)
 def analyze_audio():
  try:
   # استلام البيانات المرفوعة من واجهة الموقع
-surah = request.form.get('surah', 'غير محدد')
-verse_from = request.form.get('verse_from', '1')
-verse_to = request.form.get('verse_to', '1')
-riwaya = request.form.get('riwaya', 'حفص عن عاصم')
+  surah = request.form.get('surah', 'غير محدد')
+  verse_from = request.form.get('verse_from', '1')
+  verse_to = request.form.get('verse_to', '1')
+  riwaya = request.form.get('riwaya', 'حفص عن عاصم')
 
 audio_file = request.files.get('audio')
 
