@@ -74,6 +74,9 @@ def analyze_audio():
         return jsonify(result_json)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
+        
         if 'audio_path' in locals() and os.path.exists(audio_path):
             os.remove(audio_path)
             
