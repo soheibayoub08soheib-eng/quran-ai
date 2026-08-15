@@ -1,14 +1,13 @@
 import os
-import google.generativeai as genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from groq import Groq
 
 app = Flask(__name__)
 CORS(app)
 
-# تهيئة المفتاح بالطريقة الكلاسيكية المستقرة
-api_key = os.environ.get("GOOGLE_API_KEY")
-genai.configure(api_key=api_key)
+# تهيئة عميل Groq باستخدام المفتاح الجديد
+groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
@@ -31,33 +30,44 @@ def analyze_audio():
         audio_path = "temp_audio_file.mp3"
         audio_file.save(audio_path)
 
-        # رفع الملف بالطريقة الكلاسيكية المعتمدة
-        audio_ref = genai.upload_file(audio_path)
+        # الخطوة الأولى: تحويل الصوت إلى نص بدقة عالية جداً عبر Whisper من Groq
+        with open(audio_path, "rb") as file:
+            transcription = groq_client.audio.transcriptions.create(
+                file=(audio_path, file.read()),
+                model="whisper-large-v3",
+                language="ar",
+                response_format="text"
+            )
 
-        # استدعاء النموذج المستقر
-        model = genai.GenerativeModel('gemini-1.5-flash')
-
+        # الخطوة الثانية: تحليل النص والتلاوة والأحكام عبر نموذج الذكاء الاصطناعي الخارق Llama 3
         prompt = f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
-مهمتك هي الاستماع بعناية للملف الصوتي المرفق ومقارنته بالآيات المطلوبة
+المستخدم قام بتلاوة الآيات التالية:
 - السورة: {surah}
 - من الآية: {verse_from} إلى الآية {verse_to}
 
+النص المستخرج من تلاوته هو: "{transcription}"
+
 تعليمات التقييم:
-1. افحص الحفظ وصحة الكلمات ومخارج الحروف. إذا كان الملف الصوتي عبارة عن صوت عشوائي تماماً، أو كلام فارغ لا علاقة له بالقرآن، اجعل الحالة "error". أما إذا كانت التلاوة قرآنية صحيحة، فاجعل الحالة "success".
-2. أجب حصرياً بصيغة JSON نظيفة تحتوي على مفتاحين:
+1. قارن النص المستخرج بالآيات المطلوبة وافحص صحة الكلمات والأحكام. إذا كانت التلاوة فارغة أو لا علاقة لها بالقرآن، اجعل الحالة "error". أما إذا كانت صحيحة أو تقريبية صحيحة، فاجعل الحالة "success".
+2. أجب حصرياً بصيغة JSON نظيفة تحتوي على مفتاحين فقط:
 - "status": إما "success" أو "error"
-- "message": التقرير المفصل بالعربية
+- "message": التقرير المفصل بالعربية للأخطاء وملاحظات التجويد إن وجدت.
 """
 
-        response = model.generate_content([audio_ref, prompt])
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
 
-        # حذف الملف المؤقت
+        # تنظيف الملف المؤقت
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
         import json
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        result_json = json.loads(clean_text)
+        result_json = json.loads(completion.choices[0].message.content)
 
         return jsonify(result_json)
 
