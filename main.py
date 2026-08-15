@@ -8,7 +8,7 @@ CORS(app)
 
 # إعداد مفتاح الـ API ورابط الاتصال المباشر
 api_key = os.environ.get("GOOGLE_API_KEY")
-url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
