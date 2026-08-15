@@ -51,7 +51,7 @@ def analyze_audio():
 
         # استدعاء أحدث نموذج متوافق مع مفاتيح المصادقة الجديدة
         response = client.models.generate_content(
-            model='gemini-2.5-flash',
+            model='gemini-1.5-flash',
             contents=[uploaded_file, prompt_text]
         )
 
