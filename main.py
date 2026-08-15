@@ -1,18 +1,13 @@
-import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import google.generativeai as genai
+import os
+import requests
 
 app = Flask(__name__)
 CORS(app)
 
-# تهيئة Gemini باستخدام المفتاح الذي أنشأته
-import os
-import requests
-
-api_key = os.environ.get("GOOGLE_API_KEY") # هنا سيقرأ المفتاح الذي تبدأ بـ AQ بشكل طبيعي جداً
-
-# الاتصال المباشر بنموذج جيميناي
+# إعداد مفتاح الـ API ورابط الاتصال المباشر
+api_key = os.environ.get("GOOGLE_API_KEY")
 url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
 
 @app.route('/analyze-audio', methods=['POST'])
@@ -32,52 +27,64 @@ def analyze_audio():
                 "message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
             }), 400
 
-        # حفظ الملف الصوتي مؤقتاً لمعالجته
-        audio_path = "temp_audio_file.mp3"
-        audio_file.save(audio_path)
+# قراءة الملف الصوتي وتحويله إلى Base64 لإرساله عبر الاتصال المباشر
+        import base64
+        audio_bytes = audio_file.read()
+        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
+        mime_type = audio_file.mimetype or 'audio/mp3'
 
-        # المعالجة للوسائط Google رفع الملف الصوتي إلى خوادم
-        print("جاري رفع وتحليل الملف الصوتي بواسطة الذكاء الاصطناعي...")
-        gemini_audio_ref = genai.upload_file(audio_path)
+        # تجهيز هيكل البيانات المرسلة باستخدام الـ prompt القديم الخاص بك
+        payload = {
+            "contents": [{
+                "parts": [
+                    {
+                        "text": f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
+مهمتك هي الاستماع بعناية للملف الصوتي المرفق ومقارنته بالآيات المطلوبة
+- السورة: {surah}
+- من الآية: {verse_from} إلى الآية {verse_to}
 
-        # إعداد نموذج الذكاء الاصطناعي بمرونة أكبر وتوجيهات بناءة
-        generation_config = {
-            "temperature": 0.3,
-            "top_p": 0.95,
-            "top_k": 40,
-            "max_output_tokens": 1024,
+:تعليمات التقييم
+1. "error" افحص الحفظ وصحة الكلمات ومخارج الحرف. إذا كان الملف الصوتي عبارة عن صوت عشوائي تماماً، أو كلام فارغ لا علاقة له بالقرآن، اجعل الحالة "message" واكتب في الـ "success" أما إذا كانت التلاوة قرآنية صحيحة في الجملة (حتى لو كانت هناك بعض الملاحظات أو الأخطاء التجويدية البسيط) ، فاجعل الحالة
+2. "success" أو "error" نظيفة تحتوي على مفتاحين JSON أجيب حصرياً بصيغة:
+- "status": إما
+- "message": التقرير المفصل بالعربية
+"""
+                    },
+                    {
+                        "inline_data": {
+                            "mime_type": mime_type,
+                            "data": audio_base64
+                        }
+                    }
+                ]
+            }]
         }
 
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
-            generation_config=generation_config
-        )
+        headers = {'Content-Type': 'application/json'}
+        
+        # إرسال الطلب المباشر عبر رابط الـ URL ومعرفات الـ AQ
+        response = requests.post(url, headers=headers, json=payload)
+        
+        if response.status_code != 200:
+            return jsonify({
+                "status": "error",
+                "message": f"خطأ من سيرفر جوجل: {response.text}"
+            }), 500
 
-        prompt = f"""
-        أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
-        مهمتك هي الاستماع بعناية للملف الصوتي المرفق ومقارنته بالآيات المطلوبة:
-        - السورة: {surah}
-        - من الآية: {verse_from} إلى الآية: {verse_to}
-    
-        تعليمات التقييم:
-        1. افحص الحفظ وصحة الكلمات ومخارج الحروف. إذا كان الملف الصوتي عبارة عن صوت عشوائي تماماً، موسيقى، أو كلام فارغ لا علاقة له بالقرآن، اجعل الحالة "error".
-        2. أما إذا كانت التلاوة قرآنية صحيحة في الجملة (حتى لو كانت هناك بعض الملاحظات أو الأخطاء التجويدية البسيطة)، فاجعل الحالة "success"، واكتب في الـ "message" تقريراً مفصلاً ولطيفاً يوضح للطالب أخطاءه ويوجهه بحكمة ومحبة لتصحيحها.
-        3. أجب حصرياً بصيغة JSON نظيفة تحتوي على مفتاحين:
-           - "status": إما "success" أو "error"
-           - "message": التقرير المفصل بالعربية.
-        """
-
-        response = model.generate_content([gemini_audio_ref, prompt])
-
-        if os.path.exists(audio_path):
-            os.remove(audio_path)
-
-        import json
-        clean_text = response.text.replace("```json", "").replace("```", "").strip()
-        result_json = json.loads(clean_text)
-
-        return jsonify(result_json)
-
+        result_json = response.json()
+        
+        # استخراج الرد وتنظيفه كما في الكود السابق تماماً
+        try:
+            raw_text = result_json['candidates'][0]['content']['parts'][0]['text']
+            import json
+            clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+            final_json = json.loads(clean_text)
+            return jsonify(final_json)
+        except Exception as parsing_error:
+            return jsonify({
+                "status": "error",
+                "message": f"حدث خطأ في تحليل الرد: {str(parsing_error)}"
+            }), 500
     except Exception as e:
         import traceback
         traceback.print_exc()
