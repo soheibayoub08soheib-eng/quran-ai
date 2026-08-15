@@ -67,7 +67,7 @@ def analyze_audio():
             
         return jsonify({
             "status": "error",
-            "message": f"الخطأ بالتفصيل: {str(e)}"
+            "message": f"الخطأ الحقيقي هو: {str(e)}"
         }), 500
 
 if __name__ == '__main__':
