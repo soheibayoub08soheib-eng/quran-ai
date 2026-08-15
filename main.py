@@ -1,12 +1,14 @@
+import os
+import google.generativeai as genai
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
 
 app = Flask(__name__)
 CORS(app)
 
-# جلب مفتاح API بالطريقة الصحيحة
+# تهيئة المفتاح بالطريقة الكلاسيكية المستقرة
 api_key = os.environ.get("GOOGLE_API_KEY")
+genai.configure(api_key=api_key)
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
@@ -25,19 +27,17 @@ def analyze_audio():
                 "message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
             }), 400
 
-        # حفظ الملف الصوتي مؤقتاً
+        # حفظ الملف مؤقتاً
         audio_path = "temp_audio_file.mp3"
         audio_file.save(audio_path)
 
-        # استخدام الطريقة الرسمية الحديثة المتوافقة مع مفاتيح AQ
-        import google.genai as genai
-        
-        client = genai.Client(api_key=api_key)
+        # رفع الملف بالطريقة الكلاسيكية المعتمدة
+        audio_ref = genai.upload_file(audio_path)
 
-        # رفع الملف الصوتي عبر العميل الرسمي
-        uploaded_file = client.files.upload(file=audio_path)
+        # استدعاء النموذج المستقر
+        model = genai.GenerativeModel('gemini-1.5-flash')
 
-        prompt_text = f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
+        prompt = f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
 مهمتك هي الاستماع بعناية للملف الصوتي المرفق ومقارنته بالآيات المطلوبة
 - السورة: {surah}
 - من الآية: {verse_from} إلى الآية {verse_to}
@@ -49,13 +49,9 @@ def analyze_audio():
 - "message": التقرير المفصل بالعربية
 """
 
-        # استدعاء أحدث نموذج متوافق مع مفاتيح المصادقة الجديدة
-        response = client.models.generate_content(
-            model='gemini-1.5-flash',
-            contents=[uploaded_file, prompt_text]
-        )
+        response = model.generate_content([audio_ref, prompt])
 
-        # حذف الملف المؤقت من السيرفر لتنظيف الذاكرة
+        # حذف الملف المؤقت
         if os.path.exists(audio_path):
             os.remove(audio_path)
 
