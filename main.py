@@ -1,19 +1,17 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import os
-import requests
 
 app = Flask(__name__)
 CORS(app)
 
-# إعداد مفتاح الـ API ورابط الاتصال المباشر
+# جلب مفتاح API بالطريقة الصحيحة
 api_key = os.environ.get("GOOGLE_API_KEY")
-url = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={api_key}"
 
 @app.route('/analyze-audio', methods=['POST'])
 def analyze_audio():
+    audio_path = None
     try:
-        # استلام البيانات المرفوعة من واجهة الموقع
         surah = request.form.get('surah', 'غير محدد')
         verse_from = request.form.get('verse_from', '1')
         verse_to = request.form.get('verse_to', '1')
@@ -27,77 +25,55 @@ def analyze_audio():
                 "message": "الرجاء إرفاق ملف صوتي صحيح للتدقيق."
             }), 400
 
-# قراءة الملف الصوتي وتحويله إلى Base64 لإرساله عبر الاتصال المباشر
-        import base64
-        audio_bytes = audio_file.read()
-        audio_base64 = base64.b64encode(audio_bytes).decode('utf-8')
-        mime_type = audio_file.mimetype or 'audio/mp3'
+        # حفظ الملف الصوتي مؤقتاً
+        audio_path = "temp_audio_file.mp3"
+        audio_file.save(audio_path)
 
-        # تجهيز هيكل البيانات المرسلة باستخدام الـ prompt القديم الخاص بك
-        payload = {
-            "contents": [{
-                "parts": [
-                    {
-                        "text": f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
+        # استخدام الطريقة الرسمية الحديثة المتوافقة مع مفاتيح AQ
+        import google.genai as genai
+        
+        client = genai.Client(api_key=api_key)
+
+        # رفع الملف الصوتي عبر العميل الرسمي
+        uploaded_file = client.files.upload(file=audio_path)
+
+        prompt_text = f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
 مهمتك هي الاستماع بعناية للملف الصوتي المرفق ومقارنته بالآيات المطلوبة
 - السورة: {surah}
 - من الآية: {verse_from} إلى الآية {verse_to}
 
-:تعليمات التقييم
-1. "error" افحص الحفظ وصحة الكلمات ومخارج الحرف. إذا كان الملف الصوتي عبارة عن صوت عشوائي تماماً، أو كلام فارغ لا علاقة له بالقرآن، اجعل الحالة "message" واكتب في الـ "success" أما إذا كانت التلاوة قرآنية صحيحة في الجملة (حتى لو كانت هناك بعض الملاحظات أو الأخطاء التجويدية البسيط) ، فاجعل الحالة
-2. "success" أو "error" نظيفة تحتوي على مفتاحين JSON أجيب حصرياً بصيغة:
-- "status": إما
+تعليمات التقييم:
+1. افحص الحفظ وصحة الكلمات ومخارج الحروف. إذا كان الملف الصوتي عبارة عن صوت عشوائي تماماً، أو كلام فارغ لا علاقة له بالقرآن، اجعل الحالة "error". أما إذا كانت التلاوة قرآنية صحيحة، فاجعل الحالة "success".
+2. أجب حصرياً بصيغة JSON نظيفة تحتوي على مفتاحين:
+- "status": إما "success" أو "error"
 - "message": التقرير المفصل بالعربية
 """
-                    },
-                    {
-                        "inline_data": {
-                            "mime_type": mime_type,
-                            "data": audio_base64
-                        }
-                    }
-                ]
-            }]
-        }
 
-        headers = {'Content-Type': 'application/json'}
-        
-        # إرسال الطلب المباشر عبر رابط الـ URL ومعرفات الـ AQ
-        response = requests.post(url, headers=headers, json=payload)
-        
-        if response.status_code != 200:
-            return jsonify({
-                "status": "error",
-                "message": f"خطأ من سيرفر جوجل: {response.text}"
-            }), 500
+        # استدعاء أحدث نموذج متوافق مع مفاتيح المصادقة الجديدة
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=[uploaded_file, prompt_text]
+        )
 
-        result_json = response.json()
-        
-        # استخراج الرد وتنظيفه كما في الكود السابق تماماً
-        try:
-            raw_text = result_json['candidates'][0]['content']['parts'][0]['text']
-            import json
-            clean_text = raw_text.replace("```json", "").replace("```", "").strip()
-            final_json = json.loads(clean_text)
-            return jsonify(final_json)
-        except Exception as parsing_error:
-            return jsonify({
-                "status": "error",
-                "message": f"حدث خطأ في تحليل الرد: {str(parsing_error)}"
-            }), 500
+        # حذف الملف المؤقت من السيرفر لتنظيف الذاكرة
+        if os.path.exists(audio_path):
+            os.remove(audio_path)
+
+        import json
+        clean_text = response.text.replace("```json", "").replace("```", "").strip()
+        result_json = json.loads(clean_text)
+
+        return jsonify(result_json)
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        
-        if 'audio_path' in locals() and os.path.exists(audio_path):
+        if audio_path and os.path.exists(audio_path):
             os.remove(audio_path)
             
         return jsonify({
             "status": "error",
-            "message": f"حدث خطأ أثناء معالجة التلاوة بالذكاء الاصطناعي: {str(e)}"
+            "message": f"حدث خطأ أثناء معالجة التلاوة: {str(e)}"
         }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-
