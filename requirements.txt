@@ -1,5 +1,5 @@
 Flask
-Flask-Cors
+flask-cors
 requests
-google-generativeai
+google-genai
 gunicorn
