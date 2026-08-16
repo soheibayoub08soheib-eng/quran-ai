@@ -4,7 +4,8 @@ from flask_cors import CORS
 from groq import Groq
 
 app = Flask(__name__)
-CORS(app)
+# بدلاً من CORS(app) فقط، استخدم هذا:
+CORS(app, resources={r"/analyze-audio": {"origins": "*"}})
 
 # تهيئة عميل Groq باستخدام المفتاح الجديد
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
