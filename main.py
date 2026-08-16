@@ -10,7 +10,7 @@ CORS(app, resources={r"/analyze-audio": {"origins": "*"}})
 # تهيئة عميل Groq باستخدام المفتاح الجديد
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-@app.route('/analyze-audio', methods=['POST'])
+@app.route('/api/correct-recitation', methods=['POST'])
 def analyze_audio():
     audio_path = None
     try:
