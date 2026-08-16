@@ -2,12 +2,13 @@ import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
+import json
 
 app = Flask(__name__)
-# بدلاً من CORS(app) فقط، استخدم هذا:
-CORS(app, resources={r"/analyze-audio": {"origins": "*"}})
+# التصحيح: تفعيل CORS ليشمل المسار الصحيح بالكامل أو كل التطبيق
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# تهيئة عميل Groq باستخدام المفتاح الجديد
+# تهيئة عميل Groq باستخدام المفتاح من البيئة
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
 @app.route('/api/correct-recitation', methods=['POST'])
@@ -15,8 +16,9 @@ def analyze_audio():
     audio_path = None
     try:
         surah = request.form.get('surah', 'غير محدد')
-        verse_from = request.form.get('verse_from', '1')
-        verse_to = request.form.get('verse_to', '1')
+        # تصحيح أسماء الحقول لتتوافق تماماً مع ما ترسله واجهة الموقع
+        verse_from = request.form.get('ayah_from', '1')
+        verse_to = request.form.get('ayah_to', '1')
         riwaya = request.form.get('riwaya', 'حفص عن عاصم')
         
         audio_file = request.files.get('audio')
@@ -40,7 +42,7 @@ def analyze_audio():
                 response_format="text"
             )
 
-        # الخطوة الثانية: تحليل النص والتلاوة والأحكام عبر نموذج الذكاء الاصطناعي الخارق Llama 3
+        # الخطوة الثانية: تحليل النص والتلاوة والأحكام عبر نموذج Llama 3
         prompt = f"""أنت مقرئ وخبير محترف في علم التجويد والقراءات القرآنية برواية {riwaya}.
 المستخدم قام بتلاوة الآيات التالية:
 - السورة: {surah}
@@ -64,10 +66,9 @@ def analyze_audio():
         )
 
         # تنظيف الملف المؤقت
-        if os.path.exists(audio_path):
+        if audio_path and os.path.exists(audio_path):
             os.remove(audio_path)
 
-        import json
         result_json = json.loads(completion.choices[0].message.content)
 
         return jsonify(result_json)
