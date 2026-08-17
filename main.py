@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from groq import Groq
 import json
+import traceback
 
 app = Flask(__name__)
 # التصحيح: تفعيل CORS ليشمل المسار الصحيح بالكامل أو كل التطبيق
@@ -75,8 +76,13 @@ def analyze_audio():
         return jsonify(result_json)
 
     except Exception as e:
+        # تنظيف الملف المؤقت في حال حدوث خطأ
         if audio_path and os.path.exists(audio_path):
             os.remove(audio_path)
+            
+        # طباعة تفاصيل الخطأ كاملة في Render Logs
+        print("CRITICAL ERROR TRACEBACK:")
+        traceback.print_exc()
             
         return jsonify({
             "status": "error",
