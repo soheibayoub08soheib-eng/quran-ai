@@ -60,7 +60,7 @@ def analyze_audio():
 """
 
         completion = groq_client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="openai/gpt-oss-20b",
             messages=[
                 {"role": "user", "content": prompt}
             ],
