@@ -60,7 +60,7 @@ def analyze_audio():
 """
 
         completion = groq_client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model="llama3-8b-8192",
             messages=[
                 {"role": "user", "content": prompt}
             ],
