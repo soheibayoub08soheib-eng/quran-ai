@@ -19,7 +19,7 @@ def analyze_audio():
         verse_from = request.form.get('ayah_from', '1')
         verse_to = request.form.get('ayah_to', '1')
         riwaya = request.form.get('riwaya', 'حفص عن عاصم')
-        level = request.form.get('level', 'ابتدائي') # استقبال مستوى التصحيح (ابتدائي / متقدم)
+        level = request.form.get('level', 'متوسط (الاحكام العامة والوقف)') # استقبال مستوى التصحيح (ابتدائي / متقدم)
         
         audio_file = request.files.get('audio')
         
