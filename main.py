@@ -21,7 +21,7 @@ def analyze_audio():
         riwaya = request.form.get('riwaya', 'حفص عن عاصم')
         level = request.form.get('level', 'متوسط (الاحكام العامة والوقف)')
         
-        audio_file = request.files.get('audio')
+        audio_file = request.files.get('audio') or request.files.get('file') or request.files.get('recording')
         
         if not audio_file:
             return jsonify({
