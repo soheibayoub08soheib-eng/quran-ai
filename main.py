@@ -30,7 +30,7 @@ def analyze_audio():
             }), 400
 
         # حفظ الملف مؤقتاً
-        audio_path = "temp_audio_file.mp3"
+        audio_path = f"temp_audio_file.{audio_file.filename.rsplit('.', 1)[1].lower() if audio_file.filename and '.' in audio_file.filename else 'mp3'}"
         audio_file.save(audio_path)
 
         # الخطوة الأولى: تحويل الصوت إلى نص بدقة عالية جداً عبر Whisper من Groq
